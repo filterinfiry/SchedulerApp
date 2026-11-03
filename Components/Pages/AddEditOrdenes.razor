@@ -1,0 +1,84 @@
+﻿@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+@code {
+    IServices service = new Services();
+    IEnumerable<sys_rol> rolType = new List<sys_rol>();
+    usuariostareas _usuariostareas = new usuariostareas();
+    IEnumerable<usuariostareas> _listUsuariosTareas = new List<usuariostareas>();
+    IList<PrevisionCitas> _listPrevisionCitas = new List<PrevisionCitas>();
+    PrevisionCitas _previsionCitas = new PrevisionCitas();
+
+    [Parameter]
+    public DateTime start {get;set;}
+    [Parameter]
+    public int horas { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        rolType = await service.GetRols();
+
+
+    }
+
+    async Task ChangeEmpl()
+    {
+        _previsionCitas.idUsuario = _usuariostareas.idUsuarios;
+    }
+
+    async Task OnSubmit()
+    {
+        // var result = await service.InsertCitas(_previsionCitas);
+        _previsionCitas = new PrevisionCitas();
+
+        // if (result)
+        // {
+        //     NotificationService.Notify(NotificationSeverity.Success, "Guradado Correctamente");
+        // }
+        // else
+        // {
+        //     NotificationService.Notify(NotificationSeverity.Error, "Ha habido un error al guardar los cambios");
+        // }
+    }
+}
+
+
+<RadzenTemplateForm TItem="PrevisionCitas" Data=@_previsionCitas Submit=@OnSubmit>
+    <div class="col-md-12">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Empleado</RadzenText>
+        <RadzenDropDown Name="Usuario" @bind-Value="_usuariostareas.idUsuarios" AllowFiltering="false" Data=@_listUsuariosTareas TextProperty="@nameof(usuariostareas.nombre)" ValueProperty="@nameof(usuariostareas.idUsuarios)" Change="ChangeEmpl" />
+        <RadzenRequiredValidator Component="Usuario" Text="Usuario obligatorio" Popup="false" Style="position: absolute" />
+    </div>
+    <div class="col-md-12">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">AñadirTarea</RadzenText>
+    </div>
+    <div class="col_md-12">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Cliente</RadzenText>
+        <RadzenTextBox Name="NombreCliente" @bind-Value="_previsionCitas.NombreCliente"></RadzenTextBox>
+        <RadzenRequiredValidator Component="NombreCliente" Text="Cliente obligatorio" Popup="false" Style="position: absolute" />
+    </div>
+    <div class="col_md-12">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Email</RadzenText>
+        <RadzenTextBox Name="Email" @bind-Value="_previsionCitas.CorreoCliente"></RadzenTextBox>
+        
+    </div>
+    <div class="col-md-12">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Tarea</RadzenText>
+        <RadzenTextBox Name="Descripcion" @bind-Value="_previsionCitas.Descripcion"></RadzenTextBox>
+        <RadzenRequiredValidator Component="Descripcion" Text="Tarea obligatorio" Popup="false" Style="position: absolute" />
+    </div>
+    <div class="col-md-12">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Prevision en Horas</RadzenText>
+        <RadzenNumeric ShowUpDown="false" Name="Tiempo" TValue="double" @bind-Value=@_previsionCitas.Tiempo InputAttributes="@(new Dictionary<string,object>(){ { "aria-label", "enter value" }})" />
+        <RadzenRequiredValidator Component="Tiempo" Text="Tiempo obligatorio" Popup="false" Style="position: absolute" />
+    </div>
+    <div class="col-md-12">
+        <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Fecha</RadzenText>
+        <RadzenDatePicker @bind-Value=_previsionCitas.Fecha ShowTime="true" ShowSeconds="true" HoursStep="1.5" MinutesStep="5" SecondsStep="10" DateFormat="MM/dd/yyyy HH:mm" Name="DatePickerWithTime" />
+    </div>
+    <div>
+        <div class="col-md-12">
+            <RadzenButton ButtonType="ButtonType.Submit" Text="Guardar"></RadzenButton>
+        </div>
+    </div>
+</RadzenTemplateForm>

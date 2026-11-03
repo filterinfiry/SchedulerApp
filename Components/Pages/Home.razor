@@ -1,0 +1,226 @@
+﻿@page "/"
+
+@inject NotificationService NotificationService
+@inject DialogService DialogService
+
+@code {
+    IServices service = new Services();
+    List<sys_rol> rolType = new List<sys_rol>();
+    usuariostareas _usuariostareas = new usuariostareas();
+    IList<usuariostareas> _listUsuariosTareas = new List<usuariostareas>();
+    IList<PrevisionCitas> _listPrevisionCitas = new List<PrevisionCitas>();
+    PrevisionCitas _previsionCitas = new PrevisionCitas();
+    RadzenScheduler<Appointment> scheduler;
+    RadzenDataGrid<Appointment> gridAppointmet;
+    public RenderFragment renderForm { get; set; }
+    Appointment appointments = new();
+    IList<Appointment> _appointmentsSelected = new List<Appointment>();
+    int _usuarioTareasId;
+    DateTime firstDayOfMonth;
+ 
+
+
+    IList<Appointment> appointmentsList = new List<Appointment>();
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        rolType = await service.GetRols();
+        rolType.Add(new sys_rol()
+            {
+                idRol = 0,
+                nombre = "Todos"
+            });
+        firstDayOfMonth = DateTime.Now.AddMonths(-6);
+        _listUsuariosTareas = await service.GetListUserTareas();
+        _listUsuariosTareas.Add(new usuariostareas()
+            {
+                idUsuarios = 0,
+                nombre = "Todos"
+            });
+        appointmentsList = await service.GetAppointmentsListByMonth(firstDayOfMonth);
+    }
+
+    async Task ChangeEmpl()
+    {
+        if (_usuariostareas.idUsuarios == 0)
+        {
+            appointmentsList = await service.GetAppointmentsListByMonthAndIdUsuario(firstDayOfMonth, _usuariostareas.idUsuarios, _usuariostareas.idRol);
+        }
+        else
+        {
+            if (_usuariostareas.idRol != null && _usuariostareas.idRol > 0)
+            {
+                appointmentsList = await service.GetAppointmentsListByMonthAndIdUsuario(firstDayOfMonth, _usuariostareas.idUsuarios, _usuariostareas.idRol);
+            }else{
+                appointmentsList = await service.GetAppointmentsListByMonthAndIdUsuario(firstDayOfMonth, _usuariostareas.idUsuarios);
+            }
+
+            _previsionCitas.idUsuario = _usuariostareas.idUsuarios;
+            _usuarioTareasId = _usuariostareas.idUsuarios;
+        }
+    }
+    async Task OnValueChanged(object args)
+    {
+        if (args != null)
+        {
+           
+            appointmentsList = await service.GetAppointmentsListByMonthAndIdUsuario(firstDayOfMonth, _usuariostareas.idUsuarios, (int)args);
+            if((int)args == 0)
+            {
+                _listUsuariosTareas = await service.GetListUserTareas();
+            }
+            else
+            {
+                _listUsuariosTareas = await service.GetUserByIdRol((int)args);
+            }
+            _listUsuariosTareas.Add(new usuariostareas()
+                {
+                    idUsuarios = 0,
+                    nombre = "Todos"
+                });
+
+        }
+    }
+    async Task ChangeAccording(object o)
+    {
+        // renderForm = await GetFormCitas();
+    }
+
+
+    async Task OnSlotSelect(SchedulerSlotSelectEventArgs args)
+    {
+        if (args.View.Text != "Year")
+        {
+
+            Appointment data = await DialogService.OpenAsync<AddAppointmentPage>("AÑADIR NUEVA TAREA",
+            new Dictionary<string, object> { { "Start", args.Start }, { "End", args.End }, { "IdUsuario", _usuarioTareasId } });
+
+          
+                if (_usuariostareas.idUsuarios == 0)
+                {
+                 
+                    appointmentsList = await service.GetAppointmentsListByMonthWithIdRol(firstDayOfMonth, _usuariostareas.idRol);
+                }
+                else
+                {
+                    appointmentsList = await service.GetAppointmentsListByMonthAndIdUsuario(firstDayOfMonth, _usuariostareas.idUsuarios);
+
+                }
+
+           
+
+                // Either call the Reload method or reassign the Data property of the Scheduler
+                await scheduler.Reload();
+              
+         
+
+
+
+        }
+
+    }
+    async Task OnAppointmentSelect(SchedulerAppointmentSelectEventArgs<Appointment> args)
+    {
+        var data = await DialogService.OpenAsync<AddAppointmentPage>("EDITAR TAREA", new Dictionary<string, object> { { "Start", args.Start }, { "IdUsuario", args.Data.idUsuario }, { "Id", args.Data.id } });
+
+        if (_usuariostareas.idUsuarios == 0)
+        {
+            appointmentsList = await service.GetAppointmentsListByMonthWithIdRol(firstDayOfMonth, _usuariostareas.idRol);
+        }
+        else
+        {
+            appointmentsList = await service.GetAppointmentsListByMonthAndIdUsuario(firstDayOfMonth, _usuariostareas.idUsuarios);
+
+        }
+        
+        await scheduler.Reload();
+    }
+    async Task OnAppointmentMove(SchedulerAppointmentMoveEventArgs args)
+    {
+        // var draggedAppointment = appointmentsList.FirstOrDefault(x => x == args.Appointment.Data);
+
+        // if (draggedAppointment != null)
+        // {
+        //     draggedAppointment.Start = draggedAppointment.Start + args.TimeSpan;
+
+        //     draggedAppointment.Start = draggedAppointment.Start + args.TimeSpan;
+
+        //     await scheduler.Reload();
+        // }
+    }
+
+
+    void OnAppointmentRender(SchedulerAppointmentRenderEventArgs<Appointment> args)
+    {
+        if (args.Data.Cliente == "Birthday")
+        {
+            args.Attributes["style"] = "background: red";
+        }
+
+        args.Attributes["style"] = "background: " + args.Data.color + ";color:black";
+        
+
+    }
+    void OnSlotRender(SchedulerSlotRenderEventArgs args)
+    {
+        if (args.View.Text == "Month" && args.Start.Date == DateTime.Today)
+        {
+            args.Attributes["style"] = "background: var(--rz-scheduler-highlight-background-color, rgba(255,220,40,.2));";
+        }
+    }
+    async Task OnSelectGrid()
+    {
+        
+    }
+
+
+}
+<div class="row">
+    <div class="col-md-6" style="background-color:cornflowerblue">
+        <RadzenLabel Text="Selecione Tipo"></RadzenLabel>
+        <RadzenDropDown @bind-Value="_usuariostareas.idRol" AllowFiltering="false" Data=@rolType TextProperty="@nameof(sys_rol.nombre)" ValueProperty="@nameof(sys_rol.idRol)" Change="@(args=>OnValueChanged(args))" />
+        <br />
+    </div>
+    <div class="col-md-6" style="background-color:cornflowerblue">
+        <RadzenLabel Text="Selecione Empleados"></RadzenLabel>
+        <RadzenDropDown Name="Usuario" @bind-Value="_usuariostareas.idUsuarios" AllowFiltering="false" Data=@_listUsuariosTareas TextProperty="@nameof(usuariostareas.nombre)" ValueProperty="@nameof(usuariostareas.idUsuarios)" Change="ChangeEmpl" />
+        <br />
+    </div>
+    
+  
+
+    <div class="col-md-12">
+        <br />  <br />
+         <RadzenLabel Text="Calendario de Tareas"></RadzenLabel>
+        <br />  <br />
+        <RadzenScheduler @ref=@scheduler SlotRender=@OnSlotRender style="height: 768px;" TItem="Appointment" Data=@appointmentsList StartProperty="Start" EndProperty="End"
+                         TextProperty="Text" SelectedIndex="2"
+                         SlotSelect=@OnSlotSelect AppointmentSelect=@OnAppointmentSelect AppointmentRender=@OnAppointmentRender
+                         AppointmentMove=@OnAppointmentMove>
+            <RadzenDayView />
+            <RadzenWeekView />
+            <RadzenMonthView />
+        </RadzenScheduler>
+    </div>
+    <div class="col-md-12" style="background-color:cornflowerblue">
+        <RadzenText >Tareas Empleados</RadzenText>
+    </div>
+    <div class="col-md-12">
+        <RadzenDataGrid @ref="gridAppointmet" FilterMode="FilterMode.Simple" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" @bind-Value=@_appointmentsSelected
+                        LogicalFilterOperator="LogicalFilterOperator.Or" SelectionMode="DataGridSelectionMode.Single" Data="@appointmentsList" AllowPaging="true" AllowSorting="true" PageSize="15">
+            <Columns>
+                <RadzenDataGridColumn Property="@nameof(Appointment.Cliente)" Title="Cliente" Visible="true"></RadzenDataGridColumn>
+                <RadzenDataGridColumn Property="@nameof(Appointment.Matricula)" Title="Matricula">
+
+                </RadzenDataGridColumn>
+
+                <RadzenDataGridColumn Property="@nameof(Appointment.StartByTable)" Title="Fecha"></RadzenDataGridColumn>
+                <RadzenDataGridColumn Property="@nameof(Appointment.EndByTable)" Title="Fecha Fin"></RadzenDataGridColumn>
+                <RadzenDataGridColumn Property="@nameof(Appointment.Tiempo)" Title="Tiempo"></RadzenDataGridColumn>
+                <RadzenDataGridColumn Property="@nameof(Appointment.Usuario)" Title="Empleado"></RadzenDataGridColumn>
+            </Columns>
+        </RadzenDataGrid>
+    </div>
+
+</div>

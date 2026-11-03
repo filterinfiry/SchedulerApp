@@ -1,0 +1,195 @@
+﻿@inject DialogService DialogService
+@inject NotificationService NotificationService
+
+<RadzenTemplateForm TItem="Appointment" Data="@model" Submit=@OnSubmit>
+    <RadzenStack>
+        <div class="row">
+            <div class="col-md-12">
+                <RadzenLabel Text="Empleados"></RadzenLabel>
+                <RadzenDropDown Name="Usuario" @bind-Value="@model.idUsuario" AllowFiltering="false" Style="width:100%" Change="@(args=>OnChangeUser(args))"
+                                Data=@_listUsuariosTareas TextProperty="@nameof(usuariostareas.nombre)" ValueProperty="@nameof(usuariostareas.idUsuarios)" />
+                <RadzenRequiredValidator Component="Usuario" Text="Empleado obligatorio"></RadzenRequiredValidator>
+            </div>
+            <div class="col-md-12">
+                <RadzenLabel Text="Cliente" Style="width: 4rem;" />
+                <RadzenTextBox @bind-Value="@model.Cliente" MaxLength="100" Name="Cliente" Style="width:100%" />
+                <RadzenRequiredValidator Component="Cliente" Text="Cliente obligatorio" />
+            </div>
+            <div class="col-md-12">
+                <RadzenLabel Text="Modelo-Matricula"></RadzenLabel>
+                <RadzenTextBox @bind-Value="@model.Matricula" MaxLength="50" Name="Matricula" Style="width:100%"></RadzenTextBox>
+                <RadzenRequiredValidator Component="Matricula" Text="Matricula Obligatorio" />
+            </div>
+            <div class="col-md-12">
+                <RadzenLabel Text="Email" Style="width: 4rem;" />
+                <RadzenTextBox Name="CorreoCliente" MaxLength="100" @bind-Value="@model.CorreoCliente" Style="width:100%"></RadzenTextBox>
+               
+            </div>
+            <div class="col-md-12">
+                <RadzenLabel Text="Tarea" Style="width: 4rem;" />
+                <RadzenTextBox Name="Descripcion" @bind-Value="model.Descripcion" MaxLength="300" Style="width:100%"></RadzenTextBox>
+                <RadzenRequiredValidator Component="Descripcion" Text="Tarea obligatorio" Popup="false" />
+            </div>
+            <div class="col-md-12">
+                <RadzenText style="color:red !important" Visible="@(!string.IsNullOrEmpty(_freehours))">@_freehours</RadzenText>
+            </div>
+            <div class="row">
+                <RadzenLabel Text="Fecha" Component="DatePickerDateOnlyType" />
+                <div class="col-md-4">
+                    <RadzenDatePicker @bind-Value="@model.Start" DateFormat="dd/MM/yyyy" Name="DatePickerDateOnlyType" />
+                </div>
+                <div class="col-md-4">
+                    <RadzenDatePicker Change="@(args => OnChangeTime(args))" @bind-Value="@model.TimeStart" ShowTime="true" TimeOnly="true" ShowSeconds="false" DateFormat="HH:mm" Name="DatePickerTimeOnlyType" />
+                </div>
+                <div class="col-md-4">
+                    <RadzenNumeric Change="@(args=>OnChangeTime(args))" ShowUpDown="false" Name="Tiempo" TValue="double" @bind-Value=@model.Tiempo />
+                    <RadzenEmailValidator Component="Tiempo" Text="Provide a valid email address" Popup="false" />
+                </div>
+            </div>
+            <div class="col-md-12">
+                <RadzenLabel Text="Fecha Fin" />
+                <RadzenDatePicker TValue="DateTime" Name="End" @bind-Value="@model.End" Disabled="true"/>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+                        <RadzenButton ButtonType="ButtonType.Submit" Text="Guardar" />
+                    </RadzenStack>
+                </div>
+                <div class="col-md-6">
+                    <RadzenStack Orientation="Orientation.Horizontal" JustifyContent="JustifyContent.End">
+                        <RadzenButton ButtonStyle="Radzen.ButtonStyle.Danger" Click="Borrar" Text="Borrar" />
+                    </RadzenStack>
+                </div>
+            </div>
+        </div>
+    </RadzenStack>
+
+</RadzenTemplateForm>
+
+@code {
+    [Parameter]
+    public DateTime Start { get; set; }
+
+    [Parameter]
+    public DateTime End { get; set; }
+
+    [Parameter]
+    public int Id { get; set; }
+
+    [Parameter]
+    public int IdUsuario { get; set; }
+
+    IList<PrevisionCitas> _listPrevisionCitas = new List<PrevisionCitas>();
+    IEnumerable<usuariostareas> _listUsuariosTareas = new List<usuariostareas>();
+    string _freehours = string.Empty;
+    IServices service = new Services();
+
+    async Task OnChangeTime(object a)
+    {
+        if (a != null && model.TimeStart != null)
+        {
+            var tiempo = double.Parse(a.ToString());
+            var hours = model.TimeStart.Hour;
+            var minutos = model.TimeStart.Minute;
+            var end = model.Start.AddHours(hours).AddMinutes(minutos);
+
+            var start = model.Start.AddHours(hours).AddMinutes(minutos);
+            //model.End = new DateTime(end.Year, end.Month, end.Day, end.Hour, end.Minute, end.Second);  //model.Start.AddHours(tiempo + hours).AddMinutes(minutos);
+            model.End = service.SumarHorasLaborales(start, tiempo);
+        }
+
+
+    }
+
+    async Task OnChangeUser(object id)
+    {
+        _freehours = await service.GetRangoTiempos((int)id, Start);
+    }
+
+    async Task OnChangeTime(DateTime? time)
+    {
+        if (time != null && model != null &&  model.Tiempo>0)
+        {
+            var tiempo = model.Tiempo;
+            var hours = time.Value.Hour;
+            var minutos = time.Value.Minute;
+            var end = model.Start.AddHours(hours).AddMinutes(minutos);
+
+            var start = model.Start.AddHours(hours).AddMinutes(minutos);
+            //model.End = new DateTime(end.Year, end.Month, end.Day, end.Hour, end.Minute, end.Second);  //model.Start.AddHours(tiempo + hours).AddMinutes(minutos);
+            model.End = service.SumarHorasLaborales(start, tiempo);
+        }
+    }
+
+    async Task Borrar()
+    {
+        bool result = await service.DeleteCita(Id);
+
+        if (result)
+        {
+            NotificationService.Notify(NotificationSeverity.Success, "Borrado Correctamente");
+        }
+        else
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Ha habido un error al borrar");
+        }
+
+        DialogService.Close(model);
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        _listUsuariosTareas = await service.GetListUserTareas();
+        if (Id > 0)
+        {
+            model = await service.GetAppointmentAsyncById(Id);
+        }
+        base.OnInitialized();
+    }
+
+
+    public Appointment model = new Appointment();
+
+    protected override void OnParametersSet()
+    {
+        model.Start = Start;
+
+        model.id = Id;
+        //model.idUsuario = IdUsuario;
+    }
+
+    async Task OnSubmit(Appointment model)
+    {
+
+        bool result = false;
+        var start = await service.GetFechaIni(model.Start, model.TimeStart);
+        var cita = await service.CheckCitas(start, model.End, model.idUsuario);
+       if (!cita)
+        {
+            NotificationService.Notify(NotificationSeverity.Warning, "ya hay una cita en esa fecha, cambie la fecha y vuelva a guardar ");
+            return;
+        }
+
+        if (model.id > 0)
+        {
+            result = await service.UpdateCitas(model);
+        }
+        else
+        {
+            result = await service.InsertCitas(model);
+        }
+
+        if (result)
+        {
+            model = new Appointment();
+            NotificationService.Notify(NotificationSeverity.Success, "Guradado Correctamente");
+        }
+        else
+        {
+            NotificationService.Notify(NotificationSeverity.Error, "Ha habido un error al guardar los cambios");
+        }
+
+        DialogService.Close(model);
+    }
+}

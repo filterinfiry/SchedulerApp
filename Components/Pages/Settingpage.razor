@@ -1,0 +1,88 @@
+﻿@page "/settingpage"
+
+
+<PageTitle>Configuracion</PageTitle>
+
+
+<h1>Crear Usuarios</h1>
+
+
+
+@code {
+    IServices service = new Services();
+    IEnumerable<sys_rol> rolType = new List<sys_rol>();
+    usuariostareas _usuariostareas = new usuariostareas();
+    IEnumerable<usuariostareas> _listUsuariosTareas = new List<usuariostareas>();
+    RadzenDataGrid<usuariostareas> usuariosGrid;
+    int value;
+    protected override async Task OnInitializedAsync()
+    {
+
+        rolType =  await service.GetRols();
+        _listUsuariosTareas = await service.GetListUserTareas();
+
+    }
+
+    async Task OnClick()
+    {
+        var result = await service.InsertNewUser(_usuariostareas.idRol, _usuariostareas.nombre, _usuariostareas.color);
+        _usuariostareas = new usuariostareas();
+        _listUsuariosTareas = await service.GetListUserTareas();
+    }
+    async Task OnValueChanged(object args)
+    {
+        _usuariostareas.idRol = (int)args;
+    }
+    async Task DeleteRow(int id)
+    {
+        var result = await service.DeleteUser(id);
+        StateHasChanged();
+        _listUsuariosTareas = await service.GetListUserTareas();
+        await usuariosGrid.Reload();
+
+    }
+
+}
+<div class="col-md-12">
+<RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3" Style="width:100%">Nombre</RadzenText>
+<RadzenTextBox @bind-value="_usuariostareas.nombre" MaxLength="100"></RadzenTextBox>
+    <br />
+</div>
+
+<div class="col-md-12">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3" >Tipo</RadzenText>
+    
+    <RadzenDropDown  @bind-Value="_usuariostareas.idRol" AllowFiltering="false" Data=@rolType TextProperty="@nameof(sys_rol.nombre)" ValueProperty="@nameof(sys_rol.idRol)" Change="@(args=>OnValueChanged(args))" />
+    <br />
+</div>
+
+<div clas="col-md-12">
+    <RadzenText TextStyle="TextStyle.Subtitle2" TagName="TagName.H3">Elige un Color</RadzenText>
+    <RadzenColorPicker @bind-Value="_usuariostareas.color" ShowHSV="false" ShowRGBA="false" ShowColors="true" ShowButton="false" />
+    <br />
+</div>
+<div class="col-md-12">
+    <RadzenButton Click=OnClick Icon="add" ButtonStyle="ButtonStyle.Primary" />
+</div>
+<br/>
+
+<div class="col-md-12">
+    <RadzenDataGrid @ref="usuariosGrid" SelectionMode="DataGridSelectionMode.Single"  Data="@_listUsuariosTareas" AllowPaging="true" AllowSorting="true" PageSize="15">
+        <Columns>
+            <RadzenDataGridColumn Property="@nameof(usuariostareas.idUsuarios)" Title="id" Visible="false"></RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="@nameof(usuariostareas.nombre)" Title="Nombre"></RadzenDataGridColumn>
+            <RadzenDataGridColumn Property="@nameof(usuariostareas.rolname)" Title="Categoria"></RadzenDataGridColumn>
+            <RadzenDataGridColumn Title="Color">
+                <Template Context="data">
+                    <RadzenColorPicker Value="@data.color" ShowHSV="false" ShowRGBA="false" Disabled="true" ShowColors="true" ShowButton="false"></RadzenColorPicker>                    
+                </Template>
+            </RadzenDataGridColumn>
+            <RadzenDataGridColumn>
+                <Template Context="data">
+                    <RadzenButton ButtonStyle="ButtonStyle.Danger" Icon="delete" Variant="Variant.Flat" Shade="Shade.Lighter" Size="ButtonSize.Medium"  Click="@(() => DeleteRow(data.idUsuarios))">
+                    </RadzenButton>
+                </Template>
+            </RadzenDataGridColumn> 
+        </Columns>
+    </RadzenDataGrid>
+</div>
