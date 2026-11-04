@@ -164,7 +164,7 @@
 
         bool result = false;
         var start = await service.GetFechaIni(model.Start, model.TimeStart);
-        var cita = await service.CheckCitas(start, model.End, model.idUsuario);
+        var cita = await service.CheckCitas(start, model.End, model.idUsuario, model.id);
        if (!cita)
         {
             NotificationService.Notify(NotificationSeverity.Warning, "ya hay una cita en esa fecha, cambie la fecha y vuelva a guardar ");

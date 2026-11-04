@@ -346,15 +346,17 @@ namespace SchedulerApp.sql
             }
         }
 
-        public async Task<bool> CheckCitas(DateTime start,DateTime end, int idUsuario)
+        public async Task<bool> CheckCitas(DateTime start,DateTime end, int idUsuario, int id = 0)
         {
-            string sql = "Select count(*) FROM Citas where Fecha < @end  and FechaFin > @start and IdUsuario= @idUsuario ";
+            // id > 0 => estamos editando: excluimos la propia cita para que no se detecte
+            // como solapada consigo misma. id = 0 (alta) no excluye nada (no existe id 0).
+            string sql = "Select count(*) FROM Citas where Fecha < @end  and FechaFin > @start and IdUsuario= @idUsuario and id <> @id ";
 
             try
             {
                 using (var db = new MySqlConnection(_connectionString))
                 {
-                    return await db.QueryFirstAsync<int>(sql, new { start, end,idUsuario }) == 0;
+                    return await db.QueryFirstAsync<int>(sql, new { start, end,idUsuario, id }) == 0;
                 }
             }
             catch (Exception)

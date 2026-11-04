@@ -32,7 +32,7 @@ namespace SchedulerApp.Service
 
         Task<List<Appointment>> GetAppointmentsListByMonthAndIdUsuario(DateTime date,int idUsuario);
 
-        Task<bool> CheckCitas(DateTime start, DateTime end,int idUsuario);
+        Task<bool> CheckCitas(DateTime start, DateTime end,int idUsuario, int id = 0);
 
         Task<DateTime> GetFechaIni(DateTime start, DateTime timestart);
 
@@ -66,9 +66,9 @@ namespace SchedulerApp.Service
             return await repository.CreateUser(name, rol,color);
         }
 
-        public async Task<bool> CheckCitas(DateTime start,DateTime end,int idUsuario)
+        public async Task<bool> CheckCitas(DateTime start,DateTime end,int idUsuario, int id = 0)
         {
-            return await repository.CheckCitas(start, end,idUsuario);
+            return await repository.CheckCitas(start, end,idUsuario, id);
         }
 
         public async Task<List<usuariostareas>> GetListUserTareas()
